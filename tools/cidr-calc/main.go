@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+var version = "1.0.0"
+
 // Prints a detailed help page
 func printHelp() {
 	helpText := `
@@ -173,9 +175,30 @@ func bytesCompare(a, b net.IP) int {
 	return strings.Compare(a.String(), b.String())
 }
 
+// Validates if an IP belongs to a CIDR block
+func validateIPInCIDR(ipStr, cidr string) {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		fmt.Println("Invalid IP address")
+		return
+	}
+
+	_, ipv4Net, err := net.ParseCIDR(cidr)
+	if err != nil {
+		fmt.Println("Invalid CIDR:", err)
+		return
+	}
+
+	if ipv4Net.Contains(ip) {
+		fmt.Printf("IP %s is within the CIDR block %s\n", ipStr, cidr)
+	} else {
+		fmt.Printf("IP %s is NOT within the CIDR block %s\n", ipStr, cidr)
+	}
+}
+
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: ./cidr-tool [calculate|split|merge|help] <CIDR> [new prefix]")
+		fmt.Println("Usage: ./cidr-tool [calculate|split|merge|validate|help|version] <CIDR> [new prefix]")
 		return
 	}
 
@@ -183,6 +206,8 @@ func main() {
 	switch command {
 	case "help":
 		printHelp()
+	case "version":
+		fmt.Println("CIDR Calculation Tool Version:", version)
 	case "calculate":
 		if len(os.Args) < 3 {
 			fmt.Println("Usage: ./cidr-tool calculate <CIDR>")
@@ -206,6 +231,12 @@ func main() {
 			return
 		}
 		mergeCIDRs(os.Args[2:])
+	case "validate":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: ./cidr-tool validate <IP> <CIDR>")
+			return
+		}
+		validateIPInCIDR(os.Args[2], os.Args[3])
 	default:
 		fmt.Println("Invalid command. Use './cidr-tool help' for usage details.")
 	}
