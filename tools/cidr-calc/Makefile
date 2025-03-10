@@ -1,21 +1,26 @@
-BINARY_NAME=cidr-tool
+BINARY_NAME=psalm-cidr-tool
 VERSION=$(shell git describe --tags --always --dirty)
+BIN_DIR=bin
 
-all: build
+all: build build-linux build-windows build-darwin
 
 build:
-	go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME) main.go
+	mkdir -p $(BIN_DIR)
+	go build -ldflags "-X main.version=$(VERSION)" -o $(BIN_DIR)/$(BINARY_NAME) main.go
 
 build-linux:
-	GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME)-linux main.go
+	mkdir -p $(BIN_DIR)
+	GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BIN_DIR)/$(BINARY_NAME)-linux main.go
 
 build-windows:
-	GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME)-windows.exe main.go
+	mkdir -p $(BIN_DIR)
+	GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BIN_DIR)/$(BINARY_NAME)-windows.exe main.go
 
 build-darwin:
-	GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY_NAME)-darwin main.go
+	mkdir -p $(BIN_DIR)
+	GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=$(VERSION)" -o $(BIN_DIR)/$(BINARY_NAME)-darwin main.go
 
 clean:
-	rm -f $(BINARY_NAME) $(BINARY_NAME)-linux $(BINARY_NAME)-windows.exe $(BINARY_NAME)-darwin
+	rm -rf $(BIN_DIR)
 
 .PHONY: all build build-linux build-windows build-darwin clean

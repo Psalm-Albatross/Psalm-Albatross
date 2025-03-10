@@ -14,25 +14,28 @@ var version = "1.0.0"
 // Prints a detailed help page
 func printHelp() {
 	helpText := `
-CIDR Calculation Tool - Helps with understanding and calculating CIDR ranges.
+🌐 CIDR Calculation Tool - Helps with understanding and calculating CIDR ranges.
 
 Usage:
-  1. Calculate CIDR details:
-     $ ./cidr-tool calculate 192.168.1.0/24
+  1. 📏 Calculate CIDR details:
+     $ ./psalm-cidr-tool calculate 192.168.1.0/24
      
-  2. Split a CIDR block into smaller subnets:
-     $ ./cidr-tool split 192.168.1.0/24 26
+  2. 🔀 Split a CIDR block into smaller subnets:
+     $ ./psalm-cidr-tool split 192.168.1.0/24 26
      
-  3. Merge multiple CIDR blocks:
-     $ ./cidr-tool merge 192.168.1.0/24 192.168.2.0/24
+  3. 🔗 Merge multiple CIDR blocks:
+     $ ./psalm-cidr-tool merge 192.168.1.0/24 192.168.2.0/24
+
+  4. ✅ Validate if an IP belongs to a CIDR block:
+     $ ./psalm-cidr-tool validate 192.168.1.1 192.168.1.0/24
   
 CIDR Basics:
-  - CIDR notation defines IP ranges (e.g., 192.168.1.0/24).
-  - The prefix length (/24) determines how many addresses are available.
-  - The subnet mask controls how the IP space is divided.
-  - Network Address: First IP in the range.
-  - Broadcast Address: Last IP in the range.
-  - Usable IPs: IPs available for devices (excluding network/broadcast IPs).
+  - 📘 CIDR notation defines IP ranges (e.g., 192.168.1.0/24).
+  - 📏 The prefix length (/24) determines how many addresses are available.
+  - 🛡️ The subnet mask controls how the IP space is divided.
+  - 🌐 Network Address: First IP in the range.
+  - 📡 Broadcast Address: Last IP in the range.
+  - 💻 Usable IPs: IPs available for devices (excluding network/broadcast IPs).
   
 Examples:
   - /24 = 256 total IPs (254 usable)
@@ -116,7 +119,8 @@ func nextSubnet(ip net.IP, newPrefix int) net.IP {
 
 // Converts an IP to an integer
 func ipToInt(ip net.IP) uint32 {
-	return uint32(ip[12])<<24 | uint32(ip[13])<<16 | uint32(ip[14])<<8 | uint32(ip[15])
+	ip = ip.To4()
+	return uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
 }
 
 // Converts an integer to an IP
@@ -196,9 +200,107 @@ func validateIPInCIDR(ipStr, cidr string) {
 	}
 }
 
+// Checks if two CIDRs conflict
+func checkCIDRConflict(cidr1, cidr2 string) {
+	_, ipv4Net1, err1 := net.ParseCIDR(cidr1)
+	_, ipv4Net2, err2 := net.ParseCIDR(cidr2)
+
+	if err1 != nil || err2 != nil {
+		fmt.Println("Invalid CIDR(s):", err1, err2)
+		return
+	}
+
+	if ipv4Net1.Contains(ipv4Net2.IP) || ipv4Net2.Contains(ipv4Net1.IP) {
+		fmt.Printf("CIDR %s and CIDR %s conflict.\n", cidr1, cidr2)
+	} else {
+		fmt.Printf("CIDR %s and CIDR %s do not conflict.\n", cidr1, cidr2)
+	}
+}
+
+// Generates a new CIDR range that covers both input CIDRs
+func generateNewCIDRRange(cidr1, cidr2 string) {
+	_, ipv4Net1, err1 := net.ParseCIDR(cidr1)
+	_, ipv4Net2, err2 := net.ParseCIDR(cidr2)
+
+	if err1 != nil || err2 != nil {
+		fmt.Println("Invalid CIDR(s):", err1, err2)
+		return
+	}
+
+	startIP1 := ipv4Net1.IP
+	endIP1 := make(net.IP, len(startIP1))
+	copy(endIP1, startIP1)
+	for i := range endIP1 {
+		endIP1[i] |= ^ipv4Net1.Mask[i]
+	}
+
+	startIP2 := ipv4Net2.IP
+	endIP2 := make(net.IP, len(startIP2))
+	copy(endIP2, startIP2)
+	for i := range endIP2 {
+		endIP2[i] |= ^ipv4Net2.Mask[i]
+	}
+
+	startIP := startIP1
+	if bytesCompare(startIP2, startIP1) < 0 {
+		startIP = startIP2
+	}
+
+	endIP := endIP1
+	if bytesCompare(endIP2, endIP1) > 0 {
+		endIP = endIP2
+	}
+
+	fmt.Printf("New CIDR range covering both: %s - %s\n", startIP, endIP)
+}
+
+// Checks if two CIDRs conflict and shows a valid CIDR range in CIDR notation if they do
+func checkCIDRConflictAndShowRange(cidr1, cidr2 string) {
+	_, ipv4Net1, err1 := net.ParseCIDR(cidr1)
+	_, ipv4Net2, err2 := net.ParseCIDR(cidr2)
+
+	if err1 != nil || err2 != nil {
+		fmt.Println("Invalid CIDR(s):", err1, err2)
+		return
+	}
+
+	if ipv4Net1.Contains(ipv4Net2.IP) || ipv4Net2.Contains(ipv4Net1.IP) {
+		fmt.Printf("CIDR %s and CIDR %s conflict.\n", cidr1, cidr2)
+		startIP1 := ipv4Net1.IP
+		endIP1 := make(net.IP, len(startIP1))
+		copy(endIP1, startIP1)
+		for i := range endIP1 {
+			endIP1[i] |= ^ipv4Net1.Mask[i]
+		}
+
+		startIP2 := ipv4Net2.IP
+		endIP2 := make(net.IP, len(startIP2))
+		copy(endIP2, startIP2)
+		for i := range endIP2 {
+			endIP2[i] |= ^ipv4Net2.Mask[i]
+		}
+
+		startIP := startIP1
+		if bytesCompare(startIP2, startIP1) < 0 {
+			startIP = startIP2
+		}
+
+		endIP := endIP1
+		if bytesCompare(endIP2, endIP1) > 0 {
+			endIP = endIP2
+		}
+
+		maskSize := 32 - int(math.Log2(float64(ipToInt(endIP)-ipToInt(startIP)+1)))
+		newCIDR := fmt.Sprintf("%s/%d", startIP.String(), maskSize)
+		fmt.Printf("Valid CIDR range covering both: %s\n", newCIDR)
+	} else {
+		fmt.Printf("CIDR %s and CIDR %s do not conflict.\n", cidr1, cidr2)
+	}
+}
+
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: ./cidr-tool [calculate|split|merge|validate|help|version] <CIDR> [new prefix]")
+		fmt.Println("Usage: ./psalm-cidr-tool [calculate|split|merge|validate|conflict|generate|help|version] <CIDR> [new prefix]")
 		return
 	}
 
@@ -210,13 +312,13 @@ func main() {
 		fmt.Println("CIDR Calculation Tool Version:", version)
 	case "calculate":
 		if len(os.Args) < 3 {
-			fmt.Println("Usage: ./cidr-tool calculate <CIDR>")
+			fmt.Println("Usage: ./psalm-cidr-tool calculate <CIDR>")
 			return
 		}
 		calculateCIDR(os.Args[2])
 	case "split":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: ./cidr-tool split <CIDR> <new prefix>")
+			fmt.Println("Usage: ./psalm-cidr-tool split <CIDR> <new prefix>")
 			return
 		}
 		newPrefix, err := strconv.Atoi(os.Args[3])
@@ -227,17 +329,29 @@ func main() {
 		splitCIDR(os.Args[2], newPrefix)
 	case "merge":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: ./cidr-tool merge <CIDR1> <CIDR2> [CIDR3] ...")
+			fmt.Println("Usage: ./psalm-cidr-tool merge <CIDR1> <CIDR2> [CIDR3] ...")
 			return
 		}
 		mergeCIDRs(os.Args[2:])
 	case "validate":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: ./cidr-tool validate <IP> <CIDR>")
+			fmt.Println("Usage: ./psalm-cidr-tool validate <IP> <CIDR>")
 			return
 		}
 		validateIPInCIDR(os.Args[2], os.Args[3])
+	case "conflict":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: ./psalm-cidr-tool conflict <CIDR1> <CIDR2>")
+			return
+		}
+		checkCIDRConflictAndShowRange(os.Args[2], os.Args[3])
+	case "generate":
+		if len(os.Args) < 4 {
+			fmt.Println("Usage: ./psalm-cidr-tool generate <CIDR1> <CIDR2>")
+			return
+		}
+		generateNewCIDRRange(os.Args[2], os.Args[3])
 	default:
-		fmt.Println("Invalid command. Use './cidr-tool help' for usage details.")
+		fmt.Println("Invalid command. Use './psalm-cidr-tool help' for usage details.")
 	}
 }
