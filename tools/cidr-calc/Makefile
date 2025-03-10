@@ -1,5 +1,5 @@
 BINARY_NAME=psalm-cidr-tool
-VERSION=$(shell git describe --tags --always --dirty)
+VERSION=$(shell git describe --tags --always)
 BIN_DIR=bin
 
 all: build build-linux build-windows build-darwin
